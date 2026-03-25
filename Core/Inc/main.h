@@ -49,6 +49,8 @@ extern "C" {
 
 /* USER CODE END EM */
 
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -57,8 +59,38 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define BL_Pin GPIO_PIN_3
-#define BL_GPIO_Port GPIOA
+#define DIS_CS_Pin GPIO_PIN_0
+#define DIS_CS_GPIO_Port GPIOC
+#define DIS_RES_Pin GPIO_PIN_1
+#define DIS_RES_GPIO_Port GPIOC
+#define DIS_A0_Pin GPIO_PIN_2
+#define DIS_A0_GPIO_Port GPIOC
+#define BL_PWM_Pin GPIO_PIN_3
+#define BL_PWM_GPIO_Port GPIOA
+#define DIS_SCL_Pin GPIO_PIN_5
+#define DIS_SCL_GPIO_Port GPIOA
+#define DIS_SI_Pin GPIO_PIN_7
+#define DIS_SI_GPIO_Port GPIOA
+#define Col0_Pin GPIO_PIN_0
+#define Col0_GPIO_Port GPIOB
+#define Col1_Pin GPIO_PIN_1
+#define Col1_GPIO_Port GPIOB
+#define Col2_Pin GPIO_PIN_2
+#define Col2_GPIO_Port GPIOB
+#define ENC_BTN_Pin GPIO_PIN_13
+#define ENC_BTN_GPIO_Port GPIOB
+#define ENC_CHA_Pin GPIO_PIN_14
+#define ENC_CHA_GPIO_Port GPIOB
+#define ENC_CHB_Pin GPIO_PIN_15
+#define ENC_CHB_GPIO_Port GPIOB
+#define Col3_Pin GPIO_PIN_3
+#define Col3_GPIO_Port GPIOB
+#define Row0_Pin GPIO_PIN_4
+#define Row0_GPIO_Port GPIOB
+#define Row1_Pin GPIO_PIN_5
+#define Row1_GPIO_Port GPIOB
+#define Row2_Pin GPIO_PIN_6
+#define Row2_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
