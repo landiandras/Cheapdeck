@@ -23,7 +23,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "Display.h"
+#include "Buttons.h"
 #include <stdbool.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,8 +50,6 @@ TIM_HandleTypeDef htim2;
 DMA_HandleTypeDef hdma_tim2_up_ch4;
 
 /* USER CODE BEGIN PV */
-
-
 
 /* USER CODE END PV */
 
@@ -110,6 +110,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	uint8_t test = 0x41;
+	ScanButtons();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
