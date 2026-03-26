@@ -7,41 +7,49 @@
 
 #include "Display.h"
 
-uint8_t Frame[8][128] = {0};
-extern TIM_HandleTypeDef htim2;
+extern uint8_t Frame[8][128];
+extern uint8_t Buffer[8][128];
+extern uint8_t FrameBlockCounter;
+extern SPI_HandleTypeDef hspi1;
+bool istransmitting = false;
 
 void SetBrightness(uint8_t brightness){
 	if(brightness > 100) brightness = 100;
 	TIM2->CCR4 = brightness;
 }
 
-void SendCommand(uint8_t command){
+void SendCommandBlocking(uint8_t command){
 	HAL_GPIO_WritePin(DIS_A0_GPIO_Port, DIS_A0_Pin, GPIO_PIN_RESET);
 	HAL_SPI_Transmit(&hspi1, &command, 1, HAL_MAX_DELAY);
 }
 
-void SendData(uint8_t* data, uint8_t size){
+void SendDataBlocking(uint8_t* data, uint8_t size){
 	HAL_GPIO_WritePin(DIS_A0_GPIO_Port, DIS_A0_Pin, GPIO_PIN_SET);
 	HAL_SPI_Transmit(&hspi1, data, size, HAL_MAX_DELAY);
+}
+
+void SendDataDMA(uint8_t* data, uint8_t size){
+	HAL_GPIO_WritePin(DIS_A0_GPIO_Port, DIS_A0_Pin, GPIO_PIN_SET);
+	HAL_SPI_Transmit_DMA(&hspi1, data, size);
 }
 
 void SelectColumn(uint8_t col){
 	if(col>127) return;
 	uint8_t low = col&0x0F;
 	uint8_t high = col&0xF0>>4;
-	SendCommand(0x10|high);
-	SendCommand(0x00|low);
+	SendCommandBlocking(0x10|high);
+	SendCommandBlocking(0x00|low);
 }
 
 void SelectRow(uint8_t row){
 	if(row>63) return;
 	uint8_t page = row/8;
-	SendCommand(0xB0|page);
+	SendCommandBlocking(0xB0|page);
 }
 
 void SelectPage(uint8_t page){
 	if(page>7) return;
-	SendCommand(0xB0|page);
+	SendCommandBlocking(0xB0|page);
 }
 
 void InitDisplay(){
@@ -58,60 +66,80 @@ void InitDisplay(){
 	HAL_GPIO_WritePin(DIS_CS_GPIO_Port, DIS_CS_Pin, GPIO_PIN_RESET);
 
 	//LCD BIAS setting
-	SendCommand(0xA2);
+	SendCommandBlocking(0xA2);
 
 	//ADC Selection
-	SendCommand(0xA0);
+	SendCommandBlocking(0xA0);
 
 	//Common output mode selection
-	SendCommand(0xC0);
+	SendCommandBlocking(0xC0);
 
 	//Display Star Line: 0
-	SendCommand(0x40);
+	SendCommandBlocking(0x40);
 
 	//TODO: maybe break this into 3 pieces?
 	//Set internal V0 regulator resistor ratio for V0 voltage
-	SendCommand(0x2F);
+	SendCommandBlocking(0x2F);
 
 	//Electronic Volume Mode, set in the middle for now, calibrate later.
-	SendCommand(0x81);
-	SendCommand(0x20);
+	SendCommandBlocking(0x81);
+	SendCommandBlocking(0x20);
 
 	//V0 Voltage Regulator Internal Resistor Ratio Set
-	SendCommand(0x24);
+	SendCommandBlocking(0x24);
 
 	//Booster ratio set
-	SendCommand(0xF8);
-	SendCommand(0x00);
+	SendCommandBlocking(0xF8);
+	SendCommandBlocking(0x00);
 
 	//Display ON
-	SendCommand(0xAF);
+	SendCommandBlocking(0xAF);
 
 	//Clear the display
-	//TODO: use memcpy instead, presumably pointless either way, Frame is initialised with zeros but what the hell
+	ClearDisplay();
+	PaintDisplayBlocking();
+
+}
+
+//TODO: use memcpy instead, presumably pointless either way, Frame is initialised with zeros but what the hell
+void ClearDisplay(){
 	for(uint8_t i = 0; i<8; ++i){
 		for(uint8_t j = 0; j<128; j++){
 			Frame[i][j] = 0;
 		}
 	}
-	PaintDisplay();
-
 }
 
-void WriteBlock(uint8_t data, uint8_t col, uint8_t page){
-	if(col>127 || page > 7) return;
-	SelectPage(page);
-	SelectColumn(col);
-	//SendData(data);
-}
 
-void PaintDisplay(){
-
+void PaintDisplayBlocking(){
 	SelectColumn(0);
 	for(uint8_t i = 0; i<8; ++i){
 		SelectPage(i);
-		SendData(Frame[i], 128);
+		SendDataBlocking(Frame[i], 128);
 		SelectColumn(0);
 	}
 }
 
+void PaintDisplayDMA(){
+	if(istransmitting) return;
+	istransmitting = true;
+	SelectColumn(0);
+	SelectPage(0);
+	FrameBlockCounter = 1;
+	HAL_GPIO_WritePin(DIS_A0_GPIO_Port, DIS_A0_Pin, GPIO_PIN_SET);
+	HAL_SPI_Transmit_DMA(&hspi1, Frame[0], 128);
+}
+
+void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi){
+
+	if(FrameBlockCounter >= 8) {
+		FrameBlockCounter = 0;
+		istransmitting = false;
+		return;
+	}
+	SelectPage(FrameBlockCounter);
+	SelectColumn(0);
+	HAL_GPIO_WritePin(DIS_A0_GPIO_Port, DIS_A0_Pin, GPIO_PIN_SET);
+	HAL_SPI_Transmit_DMA(&hspi1, Frame[FrameBlockCounter++], 128);
+
+}

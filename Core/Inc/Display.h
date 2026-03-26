@@ -13,19 +13,22 @@
 #include "main.h"
 #include "stm32f4xx_hal.h"
 
-extern SPI_HandleTypeDef hspi1;
+
 
 void SetBrightness(uint8_t brightness);
-void SendCommand(uint8_t command);
-void SendData(uint8_t* data, uint8_t size);
+void SendCommandBlocking(uint8_t command);
+void SendDataBlocking(uint8_t* data, uint8_t size);
+void SendDataDMA(uint8_t* data, uint8_t size);
 void SelectColumn(uint8_t col);
 void SelectRow(uint8_t row);
 void SelectPage(uint8_t page);
 
 void InitDisplay();
 
-void WriteBlock(uint8_t data, uint8_t col, uint8_t block);
-void PaintDisplay();
+void ClearDisplay();
+void PaintDisplayBlocking();
+void PaintDisplayDMA();
+extern void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi);
 
 
 

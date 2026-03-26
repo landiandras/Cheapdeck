@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -79,10 +79,13 @@ void Error_Handler(void);
 #define Col2_GPIO_Port GPIOB
 #define ENC_BTN_Pin GPIO_PIN_13
 #define ENC_BTN_GPIO_Port GPIOB
+#define ENC_BTN_EXTI_IRQn EXTI15_10_IRQn
 #define ENC_CHA_Pin GPIO_PIN_14
 #define ENC_CHA_GPIO_Port GPIOB
+#define ENC_CHA_EXTI_IRQn EXTI15_10_IRQn
 #define ENC_CHB_Pin GPIO_PIN_15
 #define ENC_CHB_GPIO_Port GPIOB
+#define ENC_CHB_EXTI_IRQn EXTI15_10_IRQn
 #define Col3_Pin GPIO_PIN_3
 #define Col3_GPIO_Port GPIOB
 #define Row0_Pin GPIO_PIN_4

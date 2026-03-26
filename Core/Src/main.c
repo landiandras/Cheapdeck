@@ -25,6 +25,7 @@
 #include "Display.h"
 #include "Buttons.h"
 #include <stdbool.h>
+#include "Encoder.h"
 
 /* USER CODE END Includes */
 
@@ -45,12 +46,14 @@
 
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
+DMA_HandleTypeDef hdma_spi1_tx;
 
 TIM_HandleTypeDef htim2;
 DMA_HandleTypeDef hdma_tim2_up_ch4;
 
 /* USER CODE BEGIN PV */
-
+uint8_t Frame[8][128] = {0};
+uint8_t FrameBlockCounter = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -104,14 +107,25 @@ int main(void)
   InitDisplay();
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
   TIM2->CCR4 = 30;
+
+  uint8_t test = 64;
+  Frame[4][test] = 0xFF;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	uint8_t test = 0x41;
+	int32_t cntr = GetEncoderCounter();
+	if(cntr){
+
+	Frame[4][test] = 0x00;
+	Frame[4][test+=cntr] = 0xFF;
+	cntr = 0;
+	}
 	ScanButtons();
+	HAL_Delay(20);
+	PaintDisplayDMA();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -277,11 +291,15 @@ static void MX_DMA_Init(void)
 
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
+  __HAL_RCC_DMA2_CLK_ENABLE();
 
   /* DMA interrupt init */
   /* DMA1_Stream7_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream7_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream7_IRQn);
+  /* DMA2_Stream3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
 
 }
 
@@ -322,23 +340,21 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ENC_BTN_Pin ENC_CHA_Pin */
-  GPIO_InitStruct.Pin = ENC_BTN_Pin|ENC_CHA_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  /*Configure GPIO pins : ENC_BTN_Pin ENC_CHA_Pin ENC_CHB_Pin */
+  GPIO_InitStruct.Pin = ENC_BTN_Pin|ENC_CHA_Pin|ENC_CHB_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : ENC_CHB_Pin */
-  GPIO_InitStruct.Pin = ENC_CHB_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(ENC_CHB_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : Row0_Pin Row1_Pin Row2_Pin */
   GPIO_InitStruct.Pin = Row0_Pin|Row1_Pin|Row2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */

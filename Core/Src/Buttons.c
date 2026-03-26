@@ -28,24 +28,24 @@ const GPIO_Pin rows[]={
 
 const uint8_t BounceDuration = 5;
 
-uint8_t buttons[12] = {0};
-
+uint32_t ButtonsLockout[12] = {0};
+bool buttons[12] = {0};
 
 bool GetButtonState(uint8_t but){
 	if(but > (numberofcolumns * numberofrows)) return false;
-	return (buttons[but] == BounceDuration);
+	return (buttons[but]);
 }
 
 void ButtonPressed(uint8_t but){
 	if(but > (numberofcolumns * numberofrows)) return;
 	if(buttons[but] == BounceDuration) return;
-	buttons[but]++;
+	buttons[but] = true;
 }
 
 void ButtonDePressed(uint8_t but) {
 	if(but > (numberofcolumns * numberofrows)) return;
 	if(buttons[but] == 0) return;
-	buttons[but]--;
+	buttons[but] = false;
 }
 
 void SetColumn(uint8_t col){
@@ -57,8 +57,11 @@ void SetColumn(uint8_t col){
 
 void ReadColumn(uint8_t col){
 	for(uint8_t i = 0; i<numberofrows; ++i){
-		if(HAL_GPIO_ReadPin(rows[i].port, rows[i].pin) == GPIO_PIN_RESET) ButtonPressed(col+(numberofcolumns*i));
-		else ButtonDePressed(col+(numberofcolumns*i));
+		if(HAL_GetTick() - ButtonsLockout[i+(col*numberofrows)] > BounceDuration){
+			if(HAL_GPIO_ReadPin(rows[i].port, rows[i].pin) == GPIO_PIN_RESET) ButtonPressed(col+(numberofcolumns*i));
+			else ButtonDePressed(col+(numberofcolumns*i));
+			ButtonsLockout[i+(col*numberofrows)] = HAL_GetTick();
+		}
 	}
 }
 
