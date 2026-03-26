@@ -49,7 +49,7 @@ DMA_HandleTypeDef hdma_tim2_up_ch4;
 
 /* USER CODE BEGIN PV */
 
-bool SPI_ready = true;
+
 
 /* USER CODE END PV */
 

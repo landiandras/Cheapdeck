@@ -9,7 +9,6 @@
 
 uint8_t Frame[8][128] = {0};
 extern TIM_HandleTypeDef htim2;
-extern SPI_ready;
 
 void SetBrightness(uint8_t brightness){
 	if(brightness > 100) brightness = 100;
@@ -22,12 +21,8 @@ void SendCommand(uint8_t command){
 }
 
 void SendData(uint8_t* data, uint8_t size){
-	while(!SPI_ready)
-	{}
 	HAL_GPIO_WritePin(DIS_A0_GPIO_Port, DIS_A0_Pin, GPIO_PIN_SET);
-	HAL_SPI_Transmit_IT(&hspi1, data, size);
-	SPI_ready = false;
-
+	HAL_SPI_Transmit(&hspi1, data, size, HAL_MAX_DELAY);
 }
 
 void SelectColumn(uint8_t col){
