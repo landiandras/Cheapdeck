@@ -27,11 +27,24 @@
 #include <stdbool.h>
 #include "Encoder.h"
 
+#include "usb_device.h"
+#include "usbd_hid.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct {
+    uint8_t MODIFIER; // Ctrl, Shift, Alt, etc.
+    uint8_t RESERVED; // Always 0
+    uint8_t KEYCODE1; // Key 1
+    uint8_t KEYCODE2; // Key 2
+    uint8_t KEYCODE3; // Key 3
+    uint8_t KEYCODE4; // Key 4
+    uint8_t KEYCODE5; // Key 5
+    uint8_t KEYCODE6; // Key 6
+} keyboardHID;
 
+keyboardHID kb_report = {0};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -52,6 +65,9 @@ TIM_HandleTypeDef htim2;
 DMA_HandleTypeDef hdma_tim2_up_ch4;
 
 /* USER CODE BEGIN PV */
+extern USBD_HandleTypeDef hUsbDeviceFS;
+
+
 uint8_t Frame[8][128] = {0};
 uint8_t FrameBlockCounter = 0;
 /* USER CODE END PV */
@@ -118,12 +134,22 @@ int main(void)
   {
 	int32_t cntr = GetEncoderCounter();
 	if(cntr){
-
 	Frame[4][test] = 0x00;
 	Frame[4][test+=cntr] = 0xFF;
 	cntr = 0;
 	}
 	ScanButtons();
+	if(GetButtonState(0)){
+		// 1. Press the 'A' key (USB Keycode for 'A' is 0x04)
+		    kb_report.KEYCODE1 = 0x04;
+		    USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&kb_report, sizeof(kb_report));
+	}
+	if(!GetButtonState(0)){
+	    // 2. IMPORTANT: Release the key!
+	    // If you don't send an empty report, the PC will think you are holding the key down forever.
+	    kb_report.KEYCODE1 = 0x00;
+	    USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&kb_report, sizeof(kb_report));
+	}
 	HAL_Delay(20);
 	PaintDisplayDMA();
     /* USER CODE END WHILE */

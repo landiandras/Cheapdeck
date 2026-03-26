@@ -52,9 +52,19 @@ bool GetEncoderButtonState(){
 }
 
 int32_t GetEncoderCounter(){
+	// Save the current interrupt state
+	uint32_t primask_bit = __get_PRIMASK();
+
+	// Disable all interrupts
 	__disable_irq();
+
+	// Reset the counter
 	int32_t temp = encodercounter;
 	encodercounter = 0;
-	__enable_irq();
+
+	// Return to original interrupt state
+	__set_PRIMASK(primask_bit);
+
+
 	return temp;
 }

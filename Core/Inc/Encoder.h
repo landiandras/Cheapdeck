@@ -16,5 +16,6 @@
 
 extern void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 bool GetEncoderButtonState();
+int32_t GetEncoderCounter();
 
 #endif /* INC_ENCODER_H_ */
