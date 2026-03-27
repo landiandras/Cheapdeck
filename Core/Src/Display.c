@@ -8,10 +8,12 @@
 #include "Display.h"
 
 extern uint8_t Frame[8][128];
-extern uint8_t Buffer[8][128];
+__attribute__((aligned(4))) uint8_t Buffer[8][128];
 extern uint8_t FrameBlockCounter;
 extern SPI_HandleTypeDef hspi1;
+extern DMA_HandleTypeDef hdma_memtomem_dma2_stream0;
 bool istransmitting = false;
+extern bool drawingallowed;
 
 void SetBrightness(uint8_t brightness){
 	if(brightness > 100) brightness = 100;
@@ -53,6 +55,8 @@ void SelectPage(uint8_t page){
 }
 
 void InitDisplay(){
+    hdma_memtomem_dma2_stream0.XferCpltCallback = DMA_CpltCallback;
+
 	HAL_GPIO_WritePin(DIS_A0_GPIO_Port, DIS_A0_Pin, GPIO_PIN_RESET);
 
 	//RES pin LOW
@@ -123,12 +127,23 @@ void PaintDisplayBlocking(){
 void PaintDisplayDMA(){
 	if(istransmitting) return;
 	istransmitting = true;
-	SelectColumn(0);
-	SelectPage(0);
-	FrameBlockCounter = 1;
-	HAL_GPIO_WritePin(DIS_A0_GPIO_Port, DIS_A0_Pin, GPIO_PIN_SET);
-	HAL_SPI_Transmit_DMA(&hspi1, Frame[0], 128);
+	drawingallowed = false;
+	HAL_DMA_Start_IT(&hdma_memtomem_dma2_stream0, (uint32_t)Frame, (uint32_t)Buffer, 256);
+
 }
+
+void DMA_CpltCallback(DMA_HandleTypeDef *dma){
+	if(dma == &hdma_memtomem_dma2_stream0){
+		drawingallowed = true;
+		SelectColumn(0);
+		SelectPage(0);
+		FrameBlockCounter = 1;
+		HAL_GPIO_WritePin(DIS_A0_GPIO_Port, DIS_A0_Pin, GPIO_PIN_SET);
+		HAL_SPI_Transmit_DMA(&hspi1, Buffer[0], 128);
+	}
+}
+
+
 
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi){
 
@@ -140,6 +155,6 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi){
 	SelectPage(FrameBlockCounter);
 	SelectColumn(0);
 	HAL_GPIO_WritePin(DIS_A0_GPIO_Port, DIS_A0_Pin, GPIO_PIN_SET);
-	HAL_SPI_Transmit_DMA(&hspi1, Frame[FrameBlockCounter++], 128);
+	HAL_SPI_Transmit_DMA(&hspi1, Buffer[FrameBlockCounter++], 128);
 
 }
