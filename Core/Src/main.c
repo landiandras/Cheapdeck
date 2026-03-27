@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "Display.h"
 #include "Buttons.h"
+#include "USB.h"
 #include <stdbool.h>
 #include "Encoder.h"
 
@@ -122,6 +123,7 @@ int main(void)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
   InitDisplay();
+  InitUSB();
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
   TIM2->CCR4 = 30;
 
