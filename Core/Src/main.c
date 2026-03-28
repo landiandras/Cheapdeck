@@ -28,8 +28,8 @@
 #include <stdbool.h>
 #include "Encoder.h"
 
+#include "usbd_customhid.h"
 #include "usb_device.h"
-#include "usbd_hid.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -144,14 +144,14 @@ int main(void)
 	ScanButtons();
 	if(GetButtonState(0)){
 		// 1. Press the 'A' key (USB Keycode for 'A' is 0x04)
-
-		    USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&kb_report, sizeof(kb_report));
+		kb_report.KEYCODE1 = 0x04;
+		USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&kb_report, sizeof(kb_report));
 	}
 	if(!GetButtonState(0)){
 	    // 2. IMPORTANT: Release the key!
 	    // If you don't send an empty report, the PC will think you are holding the key down forever.
 	    kb_report.KEYCODE1 = 0x00;
-	    USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&kb_report, sizeof(kb_report));
+	    USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&kb_report, sizeof(kb_report));
 	}
 	HAL_Delay(20);
 	PaintDisplayDMA();
