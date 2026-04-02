@@ -138,7 +138,7 @@ int main(void)
   uint8_t test = 64;
   Frame[4][test] = 0xFF;
 
-
+  int32_t cntr = 0;
   static uint8_t last_button_state = 0;
   bool newdatatosend = false;
   /* USER CODE END 2 */
@@ -147,9 +147,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
-	int32_t cntr = GetEncoderCounter();
-	if(cntr){
+	if(drawingallowed){
+	cntr = GetEncoderCounter();
 	Frame[4][test] = 0x00;
 	Frame[4][test+=cntr] = 0xFF;
 	cntr = 0;
@@ -171,7 +170,7 @@ int main(void)
 	    keyreport.KEYCODE1 = 0x00;
 	    USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyreport, sizeof(keyreport));
 	}
-	*/
+
 	if (current_button_state != last_button_state) {
 
 	    HIDdataOut.REPORTID = 0x02;
@@ -191,8 +190,8 @@ int main(void)
 	        newdatatosend = false;
 	    }
 	}
+	 */
 
-	HAL_Delay(20);
 	PaintDisplayDMA();
     /* USER CODE END WHILE */
 
@@ -432,9 +431,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : ENC_BTN_Pin ENC_CHA_Pin ENC_CHB_Pin */
-  GPIO_InitStruct.Pin = ENC_BTN_Pin|ENC_CHA_Pin|ENC_CHB_Pin;
+  /*Configure GPIO pin : ENC_BTN_Pin */
+  GPIO_InitStruct.Pin = ENC_BTN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(ENC_BTN_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : ENC_CHA_Pin ENC_CHB_Pin */
+  GPIO_InitStruct.Pin = ENC_CHA_Pin|ENC_CHB_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 

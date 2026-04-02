@@ -134,6 +134,7 @@ void PaintDisplayDMA(){
 
 //Removed most of the function calls to speed things up
 void DMA_CpltCallback(DMA_HandleTypeDef *dma){
+	if(dma == NULL) return;
 	if(dma == &hdma_memtomem_dma2_stream0){
 		drawingallowed = true;
 		uint8_t command[] = {0x10, 0x00};
@@ -148,7 +149,7 @@ void DMA_CpltCallback(DMA_HandleTypeDef *dma){
 
 //Removed most of the function calls to speed things up
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi){
-
+	if(hspi == NULL) return;
 	if(FrameBlockCounter >= 8) {
 		FrameBlockCounter = 0;
 		istransmitting = false;
