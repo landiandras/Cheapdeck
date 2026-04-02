@@ -12,22 +12,23 @@ volatile uint32_t EncoderLockout = 0;
 volatile uint32_t EncoderButtonLockout = 0;
 volatile bool EncoderButton = false;
 
+
+//removed function calls to speed this up
+//TODO: add de-bounce if needed
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
-
 	//Encoder turned:
-
 	if(GPIO_Pin == ENC_CHA_Pin || GPIO_Pin == ENC_CHB_Pin){
 	//if(HAL_GetTick()- EncoderLockout < 5) return;
-	if(GPIO_Pin == ENC_CHA_Pin && HAL_GPIO_ReadPin(ENC_CHA_GPIO_Port, ENC_CHA_Pin) == GPIO_PIN_RESET){
-		if(HAL_GPIO_ReadPin(ENC_CHB_GPIO_Port, ENC_CHB_Pin) == GPIO_PIN_SET){
+	if(GPIO_Pin == ENC_CHA_Pin && !(ENC_CHA_GPIO_Port->IDR & ENC_CHA_Pin)){
+		if(ENC_CHB_GPIO_Port->IDR & ENC_CHB_Pin){
 			encodercounter++;
 		}
 		else {
 			encodercounter--;
 		}
 	}
-	else if (GPIO_Pin == ENC_CHB_Pin && HAL_GPIO_ReadPin(ENC_CHB_GPIO_Port, ENC_CHB_Pin) == GPIO_PIN_RESET){
-		if(HAL_GPIO_ReadPin(ENC_CHA_GPIO_Port, ENC_CHA_Pin) == GPIO_PIN_SET){
+	else if (GPIO_Pin == ENC_CHB_Pin && !(ENC_CHB_GPIO_Port->IDR & ENC_CHB_Pin)){
+		if(ENC_CHA_GPIO_Port->IDR & ENC_CHA_Pin){
 			encodercounter--;
 		}
 		else {
@@ -39,10 +40,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 	//Encoder Button:
 
+	//uwTick is just HAL_GetTick();
 	if(GPIO_Pin == ENC_BTN_Pin){
-		if(HAL_GetTick()-EncoderButtonLockout > 5){
-			EncoderButton = !HAL_GPIO_ReadPin(ENC_BTN_GPIO_Port, ENC_BTN_Pin);
-			EncoderButtonLockout = HAL_GetTick();
+		if(uwTick-EncoderButtonLockout > 5){
+			EncoderButton = !(ENC_BTN_GPIO_Port->IDR & ENC_BTN_Pin);
+			EncoderButtonLockout = uwTick;
 		}
 	}
 }

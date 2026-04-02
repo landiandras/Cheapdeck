@@ -132,19 +132,21 @@ void PaintDisplayDMA(){
 
 }
 
+//Removed most of the function calls to speed things up
 void DMA_CpltCallback(DMA_HandleTypeDef *dma){
 	if(dma == &hdma_memtomem_dma2_stream0){
 		drawingallowed = true;
-		SelectColumn(0);
-		SelectPage(0);
+		uint8_t command[] = {0x10, 0x00};
+		DIS_A0_GPIO_Port->BSRR = DIS_A0_Pin<<16;
+		HAL_SPI_Transmit(&hspi1, command, 2, HAL_MAX_DELAY);
 		FrameBlockCounter = 1;
-		HAL_GPIO_WritePin(DIS_A0_GPIO_Port, DIS_A0_Pin, GPIO_PIN_SET);
+		DIS_A0_GPIO_Port->BSRR = DIS_A0_Pin;
 		HAL_SPI_Transmit_DMA(&hspi1, Buffer[0], 128);
 	}
 }
 
 
-
+//Removed most of the function calls to speed things up
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi){
 
 	if(FrameBlockCounter >= 8) {
@@ -152,9 +154,13 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi){
 		istransmitting = false;
 		return;
 	}
-	SelectPage(FrameBlockCounter);
-	SelectColumn(0);
-	HAL_GPIO_WritePin(DIS_A0_GPIO_Port, DIS_A0_Pin, GPIO_PIN_SET);
+
+	uint8_t command[] = {0xB0|FrameBlockCounter, 0x00};
+	DIS_A0_GPIO_Port->BSRR = DIS_A0_Pin<<16;
+	HAL_SPI_Transmit(&hspi1, command, 1, HAL_MAX_DELAY);
+	command[0] = 0x10;
+	HAL_SPI_Transmit(&hspi1, command, 2, HAL_MAX_DELAY);
+	DIS_A0_GPIO_Port->BSRR = DIS_A0_Pin;
 	HAL_SPI_Transmit_DMA(&hspi1, Buffer[FrameBlockCounter++], 128);
 
 }
