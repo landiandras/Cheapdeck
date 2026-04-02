@@ -1,6 +1,8 @@
 "./Core/Src/Buttons.o"
 "./Core/Src/Display.o"
 "./Core/Src/Encoder.o"
+"./Core/Src/Graphics.o"
+"./Core/Src/Timer.o"
 "./Core/Src/USB.o"
 "./Core/Src/main.o"
 "./Core/Src/stm32f4xx_hal_msp.o"

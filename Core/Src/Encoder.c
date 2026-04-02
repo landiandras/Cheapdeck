@@ -8,9 +8,9 @@
 #include "Encoder.h"
 
 volatile int32_t encodercounter;
-volatile uint32_t EncoderLockout = 0;
 volatile uint32_t EncoderButtonLockout = 0;
 volatile bool EncoderButton = false;
+const uint32_t LockoutDuration = 5;
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
@@ -33,7 +33,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	}
 	//Encoder Button:
 	if(GPIO_Pin == ENC_BTN_Pin){
-		if(HAL_GetTick()-EncoderButtonLockout > 5){
+		if(HAL_GetTick()-EncoderButtonLockout > LockoutDuration){
 			EncoderButton = !(ENC_BTN_GPIO_Port->IDR & ENC_BTN_Pin);
 			EncoderButtonLockout = HAL_GetTick();
 		}

@@ -10,8 +10,10 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #include "main.h"
 #include "stm32f4xx_hal.h"
+
 
 
 void SetBrightness(uint8_t brightness);

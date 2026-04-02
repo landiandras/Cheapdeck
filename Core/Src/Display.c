@@ -9,7 +9,7 @@
 
 extern uint8_t Frame[8][128];
 __attribute__((aligned(4))) uint8_t Buffer[8][128];
-extern uint8_t FrameBlockCounter;
+uint8_t FrameBlockCounter;
 extern SPI_HandleTypeDef hspi1;
 extern DMA_HandleTypeDef hdma_memtomem_dma2_stream0;
 bool istransmitting = false;
@@ -38,7 +38,7 @@ void SendDataDMA(uint8_t* data, uint8_t size){
 void SelectColumn(uint8_t col){
 	if(col>127) return;
 	uint8_t low = col&0x0F;
-	uint8_t high = col&0xF0>>4;
+	uint8_t high = (col&0xF0)>>4;
 	SendCommandBlocking(0x10|high);
 	SendCommandBlocking(0x00|low);
 }
@@ -96,6 +96,9 @@ void InitDisplay(){
 	SendCommandBlocking(0xF8);
 	SendCommandBlocking(0x00);
 
+	//enable backlight
+	SetBrightness(30);
+
 	//Display ON
 	SendCommandBlocking(0xAF);
 
@@ -105,13 +108,8 @@ void InitDisplay(){
 
 }
 
-//TODO: use memcpy instead, presumably pointless either way, Frame is initialised with zeros but what the hell
 void ClearDisplay(){
-	for(uint8_t i = 0; i<8; ++i){
-		for(uint8_t j = 0; j<128; j++){
-			Frame[i][j] = 0;
-		}
-	}
+	memset(Frame, 0, sizeof(Frame));
 }
 
 
@@ -156,11 +154,9 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi){
 		return;
 	}
 
-	uint8_t command[] = {0xB0|FrameBlockCounter, 0x00};
+	uint8_t command[] = {0xB0|FrameBlockCounter, 0x00, 0x10}; //set page to FrameBlockCounter and reset column to 0
 	DIS_A0_GPIO_Port->BSRR = DIS_A0_Pin<<16;
-	HAL_SPI_Transmit(&hspi1, command, 1, HAL_MAX_DELAY);
-	command[0] = 0x10;
-	HAL_SPI_Transmit(&hspi1, command, 2, HAL_MAX_DELAY);
+	HAL_SPI_Transmit(&hspi1, command, 3, HAL_MAX_DELAY);
 	DIS_A0_GPIO_Port->BSRR = DIS_A0_Pin;
 	HAL_SPI_Transmit_DMA(&hspi1, Buffer[FrameBlockCounter++], 128);
 
