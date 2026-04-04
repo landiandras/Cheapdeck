@@ -20,6 +20,12 @@ void SetBrightness(uint8_t brightness){
 	TIM2->CCR4 = brightness;
 }
 
+void ChangeBrightness(int8_t brightness){
+	if(brightness > 0 && TIM2->CCR4 + brightness > 100) TIM2->CCR4 = 100;
+	else if (brightness < 0 && TIM2->CCR4 + brightness > 100) TIM2->CCR4 = 0;
+	else TIM2->CCR4 +=brightness;
+}
+
 void SendCommandBlocking(uint8_t command){
 	HAL_GPIO_WritePin(DIS_A0_GPIO_Port, DIS_A0_Pin, GPIO_PIN_RESET);
 	HAL_SPI_Transmit(&hspi1, &command, 1, HAL_MAX_DELAY);

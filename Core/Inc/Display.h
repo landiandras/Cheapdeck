@@ -15,7 +15,7 @@
 #include "stm32f4xx_hal.h"
 
 
-
+void ChangeBrightness(int8_t brightness);
 void SetBrightness(uint8_t brightness);
 void SendCommandBlocking(uint8_t command);
 void SendDataBlocking(uint8_t* data, uint8_t size);

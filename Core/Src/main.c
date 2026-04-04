@@ -153,15 +153,18 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	cntr += GetEncoderCounter();
 	if(UpdateButtons) ScanButtonsBitwise();
-	if(drawingallowed){
-		cntr = GetEncoderCounter();
+	/*if(drawingallowed){
 		Frame[4][test] = 0x00;
 		Frame[4][test+=cntr] = 0xFF;
 		cntr = 0;
 	}
-
-
+	*/
+	if(cntr){
+		ChangeBrightness((int8_t)cntr);
+		cntr = 0;
+	}
 	if(RefreshScreen) PaintDisplayDMA();
 
 	if(changes){
