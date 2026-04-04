@@ -19,6 +19,7 @@ typedef struct {
 } GPIO_Pin;
 
 
+void ProcessKeysBitwise();
 void ReadColumnBitwise(uint8_t col);
 bool GetButtonState(uint8_t but);
 void ButtonPressed(uint8_t but);

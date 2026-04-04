@@ -51,6 +51,8 @@ typedef struct __attribute__((packed)) {
 	uint8_t DATA[63];
 } HIDdata;
 
+
+
 HIDdata HIDdataOut = {0};
 HIDdata HIDdataIn = {0};
 HIDkeypress keyreport = {0};
@@ -84,6 +86,7 @@ __attribute__((aligned(4))) uint8_t Frame[8][128] = {0};
 bool drawingallowed = true;
 bool RefreshScreen = true;
 bool UpdateButtons = true;
+uint16_t changes = 0;
 
 /* USER CODE END PV */
 
@@ -150,7 +153,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
+	if(UpdateButtons) ScanButtonsBitwise();
 	if(drawingallowed){
 		cntr = GetEncoderCounter();
 		Frame[4][test] = 0x00;
@@ -158,9 +161,12 @@ int main(void)
 		cntr = 0;
 	}
 
-	if(UpdateButtons) ScanButtonsBitwise();
+
 	if(RefreshScreen) PaintDisplayDMA();
 
+	if(changes){
+		test = 3;
+	}
 
 	/*
 	if(GetButtonState(0)){

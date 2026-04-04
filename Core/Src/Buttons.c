@@ -29,20 +29,14 @@ const GPIO_Pin rows[]={
 
 
 uint16_t oldkeys = 0;
-uint16_t newkeys = 0;
-uint16_t lockouts[5] = {0};
+uint16_t newkeys = 0x0FFF;
+extern uint16_t changes;
+
 
 uint32_t ButtonsLockout[12] = {0};
 bool buttons[12] = {0};
+bool prevbuttons[12] = {0};
 
-void ReadColumnBitwise(uint8_t col){
-	uint32_t temp = 0;
-	int8_t shift = 4 - (col * 3);
-	temp = ((GPIOB->IDR) & 0x0070);
-	if(shift >= 0) temp = temp >> shift;
-	else temp = temp << -shift;
-	newkeys |= temp;
-}
 
 bool GetButtonState(uint8_t but){
 	if(but > (numberofcolumns * numberofrows)) return false;
@@ -70,24 +64,10 @@ void SetColumn(uint8_t col){
 
 void ReadColumn(uint8_t col){
 	for(uint8_t i = 0; i<numberofrows; ++i){
-		if(HAL_GetTick() - ButtonsLockout[i+(col*numberofrows)] > BounceDuration){
+		if((HAL_GetTick() - ButtonsLockout[i+(col*numberofrows)]) > BounceDuration){
 			if(HAL_GPIO_ReadPin(rows[i].port, rows[i].pin) == GPIO_PIN_RESET) ButtonPressed(col+(numberofcolumns*i));
 			else ButtonDePressed(col+(numberofcolumns*i));
 			ButtonsLockout[i+(col*numberofrows)] = HAL_GetTick();
-		}
-	}
-}
-
-void ScanButtonsBitwise(){
-	oldkeys = newkeys;
-	newkeys = 0;
-	for(uint8_t i = 0; i<numberofcolumns; ++i){
-		SetColumn(i);
-		ReadColumnBitwise(i);
-	}
-	uint16_t changedkeys = oldkeys^newkeys;
-	if(changedkeys){
-		for(uint8_t i = 0; i<numberofcolumns*numberofrows; ++i){
 		}
 	}
 }
@@ -96,5 +76,39 @@ void ScanButtons(){
 	for(uint8_t i = 0; i<numberofcolumns; ++i){
 		SetColumn(i);
 		ReadColumn(i);
+	}
+}
+
+//unused:
+void ReadColumnBitwise(uint8_t col){
+	uint32_t temp = 0;
+	int8_t shift = 4 - (col * 3);
+	temp = ((GPIOB->IDR) & 0x0070);
+	if(shift >= 0) temp = temp >> shift;
+	else temp = temp << -shift;
+	newkeys |= temp;
+}
+
+//unused:
+void ScanButtonsBitwise(){
+	oldkeys = newkeys;
+	newkeys = 0;
+	for(uint8_t i = 0; i<numberofcolumns; ++i){
+		SetColumn(i);
+		ReadColumnBitwise(i);
+	}
+	if(oldkeys^newkeys) ProcessKeysBitwise();
+}
+
+void ProcessKeysBitwise(){
+	changes = oldkeys^newkeys;
+	if(!changes) return;
+	for(uint8_t i = 0; i< numberofcolumns*numberofrows; ++i){
+		if(changes & (1U<<i) && ((HAL_GetTick() - ButtonsLockout[i]) < BounceDuration)){
+			changes &= (0xFFFE << i);
+		}
+		else if (changes & (1U<<i)){
+			ButtonsLockout[i] = HAL_GetTick();
+		}
 	}
 }
