@@ -14,7 +14,7 @@
 #include "stm32f4xx_hal.h"
 
 
-
+uint16_t GetKeys();
 void Debounce();
 void ReadColumnBitwise(uint8_t col);
 void SetColumn(uint8_t col);

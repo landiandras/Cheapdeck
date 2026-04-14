@@ -97,7 +97,22 @@ void Error_Handler(void);
 #define Row2_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+typedef struct __attribute__((packed)) {
+	uint8_t REPORTID;
+    uint8_t MODIFIER; // Ctrl, Shift, Alt, etc.
+    uint8_t RESERVED; // Always 0
+    uint8_t KEYCODE1; // Key 1
+    uint8_t KEYCODE2; // Key 2
+    uint8_t KEYCODE3; // Key 3
+    uint8_t KEYCODE4; // Key 4
+    uint8_t KEYCODE5; // Key 5
+    uint8_t KEYCODE6; // Key 6
+} HIDkeypress;
 
+typedef struct __attribute__((packed)) {
+	uint8_t REPORTID;
+	uint8_t DATA[63];
+} HIDdata;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

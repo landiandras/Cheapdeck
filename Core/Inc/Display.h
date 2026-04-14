@@ -29,7 +29,6 @@ void InitDisplay();
 void ClearDisplay();
 void PaintDisplayBlocking();
 void PaintDisplayDMA();
-extern void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi);
 void DMA_CpltCallback(DMA_HandleTypeDef *dma);
 
 

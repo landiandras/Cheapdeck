@@ -27,6 +27,7 @@
 #include "USB.h"
 #include <stdbool.h>
 #include "Encoder.h"
+#include "Graphics.h"
 
 #include "usbd_customhid.h"
 #include "usb_device.h"
@@ -34,22 +35,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef struct __attribute__((packed)) {
-	uint8_t REPORTID;
-    uint8_t MODIFIER; // Ctrl, Shift, Alt, etc.
-    uint8_t RESERVED; // Always 0
-    uint8_t KEYCODE1; // Key 1
-    uint8_t KEYCODE2; // Key 2
-    uint8_t KEYCODE3; // Key 3
-    uint8_t KEYCODE4; // Key 4
-    uint8_t KEYCODE5; // Key 5
-    uint8_t KEYCODE6; // Key 6
-} HIDkeypress;
 
-typedef struct __attribute__((packed)) {
-	uint8_t REPORTID;
-	uint8_t DATA[63];
-} HIDdata;
 
 
 
@@ -83,9 +69,10 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 
 __attribute__((aligned(4))) uint8_t Frame[8][128] = {0};
 
-bool drawingallowed = true;
-bool RefreshScreen = true;
-bool UpdateButtons = true;
+volatile bool drawingallowed = true;
+volatile bool RefreshScreen = true;
+volatile bool UpdateButtons = true;
+volatile bool USBPacketReceived = false;
 uint16_t changes = 0;
 
 /* USER CODE END PV */
@@ -141,35 +128,60 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   InitDisplay();
-  InitUSB();
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
   HAL_TIM_Base_Start_IT(&htim3);
 
   int32_t cntr = 0;
-  uint8_t test = 63;
+  uint8_t test = 10;
+
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	if(drawingallowed){
+		WriteString(Frame, "ONE", 0, test);
+		WriteString(Frame, "TWO", 1, test);
+		WriteString(Frame, "THREE", 2, test);
+		WriteString(Frame, "FOUR", 3, test);
+		WriteString(Frame, "FIVE", 4, test);
+		WriteString(Frame, "SIX", 5, test);
+		WriteString(Frame, "SEVEN", 6, test);
+		WriteString(Frame, "EIGHT", 7, test);
+	}
 	cntr += GetEncoderCounter();
-	if(UpdateButtons) ScanButtonsBitwise();
+	if(UpdateButtons){
+		ScanButtonsBitwise();
+		keyreport = ButtonsToReport(GetKeys());
+		USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyreport, sizeof(keyreport));
+	}
+	if(USBPacketReceived){
+		HIDdataOut.REPORTID = HIDdataIn.REPORTID;
+		for(uint8_t i = 0; i < 63; ++i){
+			HIDdataOut.DATA[i] = HIDdataIn.DATA[i];
+		}
+		uint8_t result = USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&HIDdataOut, sizeof(HIDdataOut));
+		if(result == USBD_OK) USBPacketReceived = false;
+	}
 	/*if(drawingallowed){
 		Frame[4][test] = 0x00;
 		Frame[4][test+=cntr] = 0xFF;
 		cntr = 0;
 	}
 	*/
-	if(cntr){
-		ChangeBrightness((int8_t)cntr);
+	if(cntr != 0){
+		test+=cntr;
+		test %= 128;
 		cntr = 0;
 	}
 	if(RefreshScreen) PaintDisplayDMA();
 
-	if(changes){
-		test = 3;
-	}
+
+	ClearDisplay();
+
 
 	/*
 	if(GetButtonState(0)){
@@ -205,7 +217,7 @@ int main(void)
 	        newdatatosend = false;
 	    }
 	}
-	 */
+	*/
 
 
     /* USER CODE END WHILE */

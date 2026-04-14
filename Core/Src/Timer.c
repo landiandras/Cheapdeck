@@ -9,12 +9,11 @@
 extern TIM_HandleTypeDef htim3;
 extern bool RefreshScreen;
 extern bool UpdateButtons;
-uint32_t counter;
+volatile uint32_t counter;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	if(htim == NULL) return;
 	if(htim == &htim3){
-		counter++;
+		++counter;
 		UpdateButtons = true;
 		if(counter % 35){
 			RefreshScreen=true;

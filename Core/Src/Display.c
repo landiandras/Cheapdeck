@@ -82,9 +82,9 @@ void InitDisplay(){
 	SendCommandBlocking(0xA0);
 
 	//Common output mode selection
-	SendCommandBlocking(0xC0);
+	SendCommandBlocking(0xC8);
 
-	//Display Star Line: 0
+	//Display Start Line: 0
 	SendCommandBlocking(0x40);
 
 	//TODO: maybe break this into 3 pieces?
@@ -136,14 +136,14 @@ void PaintDisplayDMA(){
 
 }
 
+
 //Removed most of the function calls to speed things up
 void DMA_CpltCallback(DMA_HandleTypeDef *dma){
-	if(dma == NULL) return;
 	if(dma == &hdma_memtomem_dma2_stream0){
 		drawingallowed = true;
-		uint8_t command[] = {0x10, 0x00};
+		uint8_t command[] = {0xB0, 0x10, 0x00};
 		DIS_A0_GPIO_Port->BSRR = DIS_A0_Pin<<16;
-		HAL_SPI_Transmit(&hspi1, command, 2, HAL_MAX_DELAY);
+		HAL_SPI_Transmit(&hspi1, command, 3, HAL_MAX_DELAY);
 		FrameBlockCounter = 1;
 		DIS_A0_GPIO_Port->BSRR = DIS_A0_Pin;
 		HAL_SPI_Transmit_DMA(&hspi1, Buffer[0], 128);
@@ -160,10 +160,10 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi){
 		return;
 	}
 
-	uint8_t command[] = {0xB0|FrameBlockCounter, 0x00, 0x10}; //set page to FrameBlockCounter and reset column to 0
-	DIS_A0_GPIO_Port->BSRR = DIS_A0_Pin<<16;
-	HAL_SPI_Transmit(&hspi1, command, 3, HAL_MAX_DELAY);
-	DIS_A0_GPIO_Port->BSRR = DIS_A0_Pin;
-	HAL_SPI_Transmit_DMA(&hspi1, Buffer[FrameBlockCounter++], 128);
+	uint8_t command[] = {0xB0|(FrameBlockCounter), 0x00, 0x10};			//set page to FrameBlockCounter and reset column to 0
+	DIS_A0_GPIO_Port->BSRR = DIS_A0_Pin<<16;							//reset A0
+	HAL_SPI_Transmit(&hspi1, command, 3, HAL_MAX_DELAY);				//blocking but idc
+	DIS_A0_GPIO_Port->BSRR = DIS_A0_Pin;								//set A0
+	HAL_SPI_Transmit_DMA(&hspi1, Buffer[FrameBlockCounter++], 128);		//data go brrr
 
 }

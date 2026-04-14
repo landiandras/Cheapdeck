@@ -8,6 +8,9 @@
 #ifndef INC_USB_H_
 #define INC_USB_H_
 
-void InitUSB();
+
+#include "main.h"
+
+HIDkeypress ButtonsToReport(uint16_t buttons);
 
 #endif /* INC_USB_H_ */
