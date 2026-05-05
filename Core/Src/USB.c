@@ -11,18 +11,18 @@ extern uint8_t numberofrows;
 extern uint8_t numberofcolumns;
 
 uint8_t ButtonAssignments[] = {
-		0x04,
-		0x05,
-		0x06,
-		0x07,
-		0x08,
-		0x09,
-		0x0A,
-		0x0B,
-		0x0C,
-		0x0D,
-		0x0E,
-		0x0F
+		'q'-'a' + 0x04,
+		'a'-'a' + 0x04,
+		'y'-'a' + 0x04,
+		'w'-'a' + 0x04,
+		's'-'a' + 0x04,
+		'x'-'a' + 0x04,
+		'e'-'a' + 0x04,
+		'd'-'a' + 0x04,
+		'c'-'a' + 0x04,
+		'r'-'a' + 0x04,
+		'f'-'a' + 0x04,
+		'v'-'a' + 0x04,
 };
 
 HIDkeypress ButtonsToReport(uint16_t buttons){

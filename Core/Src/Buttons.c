@@ -17,6 +17,7 @@ const uint8_t numberofrows = 3;
 
 uint16_t newkeys = 0;
 extern uint16_t changes;
+extern bool KeysChanged;
 uint32_t ButtonsLockout[12] = {0};
 
 
@@ -52,8 +53,11 @@ void ScanButtonsBitwise(){
 	}
 	newkeys ^= 0x0FFF;								//invert the logic here so that 1 means pressed
 	changes = oldkeys^newkeys;						//check for changes
-	if(changes) Debounce();							//confirm changes (debounce)
-	newkeys = oldkeys^changes;
+	if(changes){
+		Debounce();							//confirm changes (debounce)
+		if(changes) KeysChanged = true;
+		newkeys = oldkeys^changes;
+	}
 }
 
 void Debounce(){

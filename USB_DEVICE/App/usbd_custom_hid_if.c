@@ -230,32 +230,25 @@ static int8_t CUSTOM_HID_OutEvent_FS(uint8_t event_idx, uint8_t state)
 
 	USBD_CUSTOM_HID_HandleTypeDef *hhid = (USBD_CUSTOM_HID_HandleTypeDef*)hUsbDeviceFS.pClassData;
 
-	// Filter out the Windows NumLock/CapsLock spam (Report ID 0x01)
-	    if (hhid->Report_buf[2] == 0x01)
-	    {
-	        USBD_CUSTOM_HID_ReceivePacket(&hUsbDeviceFS);
-	        return (USBD_OK);
-	    }
+	if (hhid->Report_buf[2] == 0x01){
+	     USBD_CUSTOM_HID_ReceivePacket(&hUsbDeviceFS);
+	     return (USBD_OK);
+	}
 
-	    // Process OUR data (Report ID 0x02)
-	    if (hhid->Report_buf[2] == 0x02)
-	    {
-	        HIDdataIn.REPORTID = hhid->Report_buf[2]; // Will be 0x02
-	        // Copy the rest of the payload
-	        for(uint8_t i = 3; i < 64; ++i){
-	            HIDdataIn.DATA[i-3] = hhid->Report_buf[i];
-	        }
-
-	        USBPacketReceived = true;
-	    }
+	if (hhid->Report_buf[2] == 0x02){
+		HIDdataIn.REPORTID = hhid->Report_buf[2];
+		for(uint8_t i = 3; i < 64; ++i){
+			HIDdataIn.DATA[i-3] = hhid->Report_buf[i];
+		}
+		USBPacketReceived = true;
+	}
 
   /* Start next USB packet transfer once data processing is completed */
-  if (USBD_CUSTOM_HID_ReceivePacket(&hUsbDeviceFS) != (uint8_t)USBD_OK)
-  {
-    return -1;
-  }
+	if (USBD_CUSTOM_HID_ReceivePacket(&hUsbDeviceFS) != (uint8_t)USBD_OK){
+		return -1;
+	}
 
-  return (USBD_OK);
+	return (USBD_OK);
   /* USER CODE END 6 */
 }
 

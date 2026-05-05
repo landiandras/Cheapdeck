@@ -73,6 +73,7 @@ volatile bool drawingallowed = true;
 volatile bool RefreshScreen = true;
 volatile bool UpdateButtons = true;
 volatile bool USBPacketReceived = false;
+volatile bool KeysChanged = false;
 uint16_t changes = 0;
 
 /* USER CODE END PV */
@@ -155,8 +156,11 @@ int main(void)
 	cntr += GetEncoderCounter();
 	if(UpdateButtons){
 		ScanButtonsBitwise();
+	}
+	if(KeysChanged){
 		keyreport = ButtonsToReport(GetKeys());
-		USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyreport, sizeof(keyreport));
+		uint8_t result = USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyreport, sizeof(keyreport));
+		if(result == USBD_OK) KeysChanged = false;
 	}
 	if(USBPacketReceived){
 		HIDdataOut.REPORTID = HIDdataIn.REPORTID;
