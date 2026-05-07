@@ -11,30 +11,39 @@ volatile int32_t encodercounter;
 volatile uint32_t EncoderButtonLockout = 0;
 volatile bool EncoderButton = false;
 const uint32_t LockoutDuration = 5;
+extern uint8_t mute_flag;
+volatile uint32_t EncoderLockout = 0;
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 	//Encoder turned:
 	if(GPIO_Pin == ENC_CHA_Pin && !(ENC_CHA_GPIO_Port->IDR & ENC_CHA_Pin)){
+		if(HAL_GetTick()-EncoderLockout > LockoutDuration){
 		if(ENC_CHB_GPIO_Port->IDR & ENC_CHB_Pin){
 			encodercounter++;
 		}
 		else {
 			encodercounter--;
 		}
+		EncoderLockout = HAL_GetTick();
+		}
 	}
 	else if (GPIO_Pin == ENC_CHB_Pin && !(ENC_CHB_GPIO_Port->IDR & ENC_CHB_Pin)){
+		if(HAL_GetTick()-EncoderLockout > LockoutDuration){
 		if(ENC_CHA_GPIO_Port->IDR & ENC_CHA_Pin){
 			encodercounter--;
 		}
 		else {
 			encodercounter++;
 		}
+		EncoderLockout = HAL_GetTick();
+		}
 	}
 	//Encoder Button:
 	if(GPIO_Pin == ENC_BTN_Pin){
 		if(HAL_GetTick()-EncoderButtonLockout > LockoutDuration){
 			EncoderButton = !(ENC_BTN_GPIO_Port->IDR & ENC_BTN_Pin);
+			if(EncoderButton) mute_flag = true;
 			EncoderButtonLockout = HAL_GetTick();
 		}
 	}
@@ -43,6 +52,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 bool GetEncoderButtonState(){
 	return EncoderButton;
 }
+
+
 
 int32_t GetEncoderCounter(){
 	// Save the current interrupt state

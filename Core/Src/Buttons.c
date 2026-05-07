@@ -20,7 +20,7 @@ extern uint16_t changes;
 extern bool KeysChanged;
 uint32_t ButtonsLockout[12] = {0};
 
-
+KeyboardEvent Macros[12][256] = {0};
 
 uint16_t GetKeys(){
 	return newkeys;
@@ -46,7 +46,7 @@ void ScanButtonsBitwise(){
 	newkeys = 0U;
 	for(uint8_t i = 0; i<numberofcolumns; ++i){
 		SetColumn(i);
-		for(int d = 0; d < 20; ++d) {
+		for(int d = 0; d < 20; ++d) {				//Apparently we need to wait a bit between setting output GPIOs. 20 clock cycles seems to do it.
 					__NOP();
 				}
 		ReadColumnBitwise(i);
@@ -70,4 +70,13 @@ void Debounce(){
 		}
 	}
 }
+
+void WriteMacrosToFlash(){
+	WriteToFlash((uint32_t*)Macros, sizeof(Macros));
+}
+
+void ReadMacrosFromFlash(){
+	memcpy(Macros, (const void*)0x08060000, sizeof(Macros));
+}
+
 

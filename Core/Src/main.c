@@ -39,9 +39,7 @@
 
 
 
-HIDdata HIDdataOut = {0};
-HIDdata HIDdataIn = {0};
-HIDkeypress keyreport = {0};
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -64,8 +62,11 @@ DMA_HandleTypeDef hdma_tim2_up_ch4;
 
 DMA_HandleTypeDef hdma_memtomem_dma2_stream0;
 /* USER CODE BEGIN PV */
+HIDdata HIDdataOut = {0};
+HIDdata HIDdataIn = {0};
+HIDkeypress keyreport = {0};
 extern USBD_HandleTypeDef hUsbDeviceFS;
-
+volatile uint32_t macro_delay_timer = 0;
 
 __attribute__((aligned(4))) uint8_t Frame[8][128] = {0};
 
@@ -75,6 +76,7 @@ volatile bool UpdateButtons = true;
 volatile bool USBPacketReceived = false;
 volatile bool KeysChanged = false;
 uint16_t changes = 0;
+uint8_t mute_flag = false;
 
 /* USER CODE END PV */
 
@@ -117,7 +119,8 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  HAL_Delay(1000);
+  LoadAssignments();
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -134,8 +137,10 @@ int main(void)
 
   int32_t cntr = 0;
   uint8_t test = 10;
+  uint8_t activemacro = 0;
 
-
+  uint8_t media_report[64] = {0};
+  uint8_t encoder_state = 0;
 
   /* USER CODE END 2 */
 
@@ -143,6 +148,18 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	USBD_CUSTOM_HID_HandleTypeDef *hhid = (USBD_CUSTOM_HID_HandleTypeDef*)hUsbDeviceFS.pClassData;
+
+	if(USBPacketReceived){
+		switch(HIDdataIn.DATA[0]){
+			case 1:
+				ChangeButtonAssignment(HIDdataIn.DATA[1], HIDdataIn.DATA[2], HIDdataIn.DATA[3]); break;
+			case 2:
+		}
+		USBPacketReceived = false;
+	}
+
+
 	if(drawingallowed){
 		WriteString(Frame, "ONE", 0, test);
 		WriteString(Frame, "TWO", 1, test);
@@ -153,77 +170,53 @@ int main(void)
 		WriteString(Frame, "SEVEN", 6, test);
 		WriteString(Frame, "EIGHT", 7, test);
 	}
-	cntr += GetEncoderCounter();
+
 	if(UpdateButtons){
 		ScanButtonsBitwise();
+		cntr += GetEncoderCounter();
 	}
-	if(KeysChanged){
+	if(KeysChanged && hhid != NULL && hhid->state == CUSTOM_HID_IDLE){
 		keyreport = ButtonsToReport(GetKeys());
 		uint8_t result = USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyreport, sizeof(keyreport));
 		if(result == USBD_OK) KeysChanged = false;
 	}
-	if(USBPacketReceived){
-		HIDdataOut.REPORTID = HIDdataIn.REPORTID;
-		for(uint8_t i = 0; i < 63; ++i){
-			HIDdataOut.DATA[i] = HIDdataIn.DATA[i];
-		}
-		uint8_t result = USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&HIDdataOut, sizeof(HIDdataOut));
-		if(result == USBD_OK) USBPacketReceived = false;
+
+
+	if (hhid != NULL && hhid->state == CUSTOM_HID_IDLE) {
+
+	    if (encoder_state == 0) {
+	    	if(mute_flag){
+	    		media_report[0] = 0x03;
+	    		media_report[1] = 0x01; // Mute
+	    		USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, media_report, 64);
+	    		mute_flag = 0;
+	    		encoder_state = 1;
+	    	}
+	    	else if (cntr > 0) {
+	            media_report[0] = 0x03;
+	            media_report[1] = 0x02; // Volume Up
+	            USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, media_report, 64);
+	            cntr--;
+	            encoder_state = 1;
+	        }
+	        else if (cntr < 0) {
+	            media_report[0] = 0x03;
+	            media_report[1] = 0x04; // Volume Down
+	            USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, media_report, 64);
+	            cntr++;
+	            encoder_state = 1;
+	        }
+	    }
+	    else if (encoder_state == 1) {
+	        media_report[0] = 0x03;
+	        media_report[1] = 0x00;	//release
+	        USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, media_report, 64);
+	        encoder_state = 0;
+	    }
 	}
-	/*if(drawingallowed){
-		Frame[4][test] = 0x00;
-		Frame[4][test+=cntr] = 0xFF;
-		cntr = 0;
-	}
-	*/
-	if(cntr != 0){
-		test+=cntr;
-		test %= 128;
-		cntr = 0;
-	}
+
 	if(RefreshScreen) PaintDisplayDMA();
-
-
 	ClearDisplay();
-
-
-	/*
-	if(GetButtonState(0)){
-		// 1. Press the 'A' key (USB Keycode for 'A' is 0x04)
-		keyreport.REPORTID = 0x01;
-		keyreport.KEYCODE1 = 0x33;
-		USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyreport, sizeof(keyreport));
-	}
-	if(!GetButtonState(0)){
-	    // 2. IMPORTANT: Release the key!
-	    // If you don't send an empty report, the PC will think you are holding the key down forever.
-		keyreport.REPORTID = 0x01;
-	    keyreport.KEYCODE1 = 0x00;
-	    USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyreport, sizeof(keyreport));
-	}
-
-	if (current_button_state != last_button_state) {
-
-	    HIDdataOut.REPORTID = 0x02;
-
-	    if (current_button_state == 1) {
-	        HIDdataOut.DATA[0] = 0xFF; // Pressed
-	        newdatatosend = true;
-	    } else {
-	        HIDdataOut.DATA[0] = 0x00; // Released
-	        newdatatosend = true;
-	    }
-
-	    // Attempt to send. If the USB is busy, we will catch it next loop!
-	    if (newdatatosend && USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&HIDdataOut, sizeof(HIDdataOut)) == USBD_OK) {
-	        // Only update the state tracker if the packet actually left the building
-	        last_button_state = current_button_state;
-	        newdatatosend = false;
-	    }
-	}
-	*/
-
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

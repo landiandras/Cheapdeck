@@ -109,15 +109,6 @@ __ALIGN_BEGIN static uint8_t CUSTOM_HID_ReportDesc_FS[USBD_CUSTOM_HID_REPORT_DES
 	    0x95, 0x01,                    //   REPORT_COUNT (1)
 	    0x75, 0x08,                    //   REPORT_SIZE (8)
 	    0x81, 0x03,                    //   INPUT (Cnst,Var,Abs)
-	    0x95, 0x05,                    //   REPORT_COUNT (5)
-	    0x75, 0x01,                    //   REPORT_SIZE (1)
-	    0x05, 0x08,                    //   USAGE_PAGE (LEDs)
-	    0x19, 0x01,                    //   USAGE_MINIMUM (Num Lock)
-	    0x29, 0x05,                    //   USAGE_MAXIMUM (Kana)
-	    0x91, 0x02,                    //   OUTPUT (Data,Var,Abs)
-	    0x75, 0x03,                    //   REPORT_SIZE (3)
-	    0x95, 0x01,                    //   REPORT_COUNT (1)
-	    0x91, 0x03,                    //   OUTPUT (Cnst,Var,Abs)
 	    0x95, 0x06,                    //   REPORT_COUNT (6)
 	    0x75, 0x08,                    //   REPORT_SIZE (8)
 	    0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
@@ -135,14 +126,33 @@ __ALIGN_BEGIN static uint8_t CUSTOM_HID_ReportDesc_FS[USBD_CUSTOM_HID_REPORT_DES
 	    0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
 	    0x26, 0xff, 0x00,              //   LOGICAL_MAXIMUM (255)
 	    0x75, 0x08,                    //   REPORT_SIZE (8)
-	    0x95, 0x3F,                    //   REPORT_COUNT (63)
+	    0x95, 0x3f,                    //   REPORT_COUNT (63)
 	    0x81, 0x02,                    //   INPUT (Data,Var,Abs)
 	    0x09, 0x03,                    //   USAGE (Vendor Usage 3)
 	    0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
 	    0x26, 0xff, 0x00,              //   LOGICAL_MAXIMUM (255)
 	    0x75, 0x08,                    //   REPORT_SIZE (8)
 	    0x95, 0x3f,                    //   REPORT_COUNT (63)
-	    0x91, 0x02 ,                    //   OUTPUT (Data,Var,Abs)
+	    0x91, 0x02,                    //   OUTPUT (Data,Var,Abs)
+	    0xc0,                          // END_COLLECTION
+		0x05, 0x0C,                    // USAGE_PAGE (Consumer Devices)
+		  0x09, 0x01,                    // USAGE (Consumer Control)
+		  0xA1, 0x01,                    // COLLECTION (Application)
+		  0x85, 0x03,                    //   REPORT_ID (3)
+		  0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
+		  0x25, 0x01,                    //   LOGICAL_MAXIMUM (1)
+		  0x75, 0x01,                    //   REPORT_SIZE (1)
+		  0x95, 0x03,                    //   REPORT_COUNT (3)
+		  0x09, 0xE2,                    //   USAGE (Mute)
+		  0x09, 0xE9,                    //   USAGE (Volume Up)
+		  0x09, 0xEA,                    //   USAGE (Volume Down)
+		  0x81, 0x02,                    //   INPUT (Data,Var,Abs)
+		  0x75, 0x05,                    //   REPORT_SIZE (5)
+		  0x95, 0x01,                    //   REPORT_COUNT (1)
+		  0x81, 0x03,                    //   INPUT (Cnst,Var,Abs)
+		0x75, 0x08,                    //   REPORT_SIZE (8)
+		0x95, 0x3E,                    //   REPORT_COUNT (62)
+		0x81, 0x03,                    //   INPUT (Cnst,Var,Abs)
   /* USER CODE END 0 */
   0xC0    /*     END_COLLECTION	             */
 };
@@ -230,15 +240,10 @@ static int8_t CUSTOM_HID_OutEvent_FS(uint8_t event_idx, uint8_t state)
 
 	USBD_CUSTOM_HID_HandleTypeDef *hhid = (USBD_CUSTOM_HID_HandleTypeDef*)hUsbDeviceFS.pClassData;
 
-	if (hhid->Report_buf[2] == 0x01){
-	     USBD_CUSTOM_HID_ReceivePacket(&hUsbDeviceFS);
-	     return (USBD_OK);
-	}
-
-	if (hhid->Report_buf[2] == 0x02){
-		HIDdataIn.REPORTID = hhid->Report_buf[2];
-		for(uint8_t i = 3; i < 64; ++i){
-			HIDdataIn.DATA[i-3] = hhid->Report_buf[i];
+	if (hhid->Report_buf[0] == 0x02){
+		HIDdataIn.REPORTID = hhid->Report_buf[0];
+		for(uint8_t i = 1; i <64; ++i){
+			HIDdataIn.DATA[i-1] = hhid->Report_buf[i];
 		}
 		USBPacketReceived = true;
 	}
