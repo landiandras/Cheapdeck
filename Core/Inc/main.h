@@ -113,6 +113,8 @@ typedef struct __attribute__((packed)) {
 	uint8_t REPORTID;
 	uint8_t DATA[63];
 } HIDdata;
+
+#define ENCODER_DIVIDER 4
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

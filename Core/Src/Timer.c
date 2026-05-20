@@ -9,20 +9,15 @@
 extern TIM_HandleTypeDef htim3;
 extern bool RefreshScreen;
 extern bool UpdateButtons;
-extern uint32_t macro_delay_timer;
+extern bool ReadEncoder;
 volatile uint32_t counter;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if(htim == &htim3){
 		++counter;
 		UpdateButtons = true;
-		if(counter % 35){
-			RefreshScreen=true;
-		}
-		if (macro_delay_timer > 0) {
-		        macro_delay_timer--;
-		    }
-
+		if(!(counter % 35)) RefreshScreen=true;
+		if(!(counter % 5)) ReadEncoder = true;
 	}
 }
 

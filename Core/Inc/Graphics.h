@@ -13,5 +13,6 @@
 
 void WriteCharacter(uint8_t Frame[8][128], char c, uint8_t page, uint8_t column);
 void WriteString(uint8_t Frame[8][128], char* c, uint8_t page, uint8_t column);
+void WriteLine(uint8_t Frame[8][128], char* c, uint8_t page);
 
 #endif /* INC_GRAPHICS_H_ */

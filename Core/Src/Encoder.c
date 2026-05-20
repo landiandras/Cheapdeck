@@ -17,28 +17,29 @@ volatile uint32_t EncoderLockout = 0;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 	//Encoder turned:
-	if(GPIO_Pin == ENC_CHA_Pin && !(ENC_CHA_GPIO_Port->IDR & ENC_CHA_Pin)){
-		if(HAL_GetTick()-EncoderLockout > LockoutDuration){
-		if(ENC_CHB_GPIO_Port->IDR & ENC_CHB_Pin){
-			encodercounter++;
-		}
-		else {
-			encodercounter--;
-		}
-		EncoderLockout = HAL_GetTick();
-		}
-	}
-	else if (GPIO_Pin == ENC_CHB_Pin && !(ENC_CHB_GPIO_Port->IDR & ENC_CHB_Pin)){
-		if(HAL_GetTick()-EncoderLockout > LockoutDuration){
-		if(ENC_CHA_GPIO_Port->IDR & ENC_CHA_Pin){
-			encodercounter--;
-		}
-		else {
-			encodercounter++;
-		}
-		EncoderLockout = HAL_GetTick();
-		}
-	}
+	if(GPIO_Pin == ENC_CHA_Pin || GPIO_Pin == ENC_CHB_Pin) {
+
+	        static uint8_t prev_state = 0;
+	        uint8_t curr_state = 0;											//lowest bit is channel B state, second bit is channel A
+
+	        if (ENC_CHA_GPIO_Port->IDR & ENC_CHA_Pin) curr_state |= 0x02;
+	        if (ENC_CHB_GPIO_Port->IDR & ENC_CHB_Pin) curr_state |= 0x01;
+
+	        uint8_t state_index = (prev_state << 2) | curr_state;			//combine previous state and current state into a 4 bit state
+
+	        //lookup table for the 16 possible combinations
+	        // 0 = invalid/bounce, 1 = CW (Up), -1 = CCW (Down)
+	        const int8_t encoder_states[16] = {
+	             0, -1,  1,  0,
+	             1,  0,  0, -1,
+	            -1,  0,  0,  1,
+	             0,  1, -1,  0
+	        };
+
+	        encodercounter += encoder_states[state_index];
+	        prev_state = curr_state;
+	    }
+
 	//Encoder Button:
 	if(GPIO_Pin == ENC_BTN_Pin){
 		if(HAL_GetTick()-EncoderButtonLockout > LockoutDuration){

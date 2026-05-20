@@ -66,17 +66,18 @@ HIDdata HIDdataOut = {0};
 HIDdata HIDdataIn = {0};
 HIDkeypress keyreport = {0};
 extern USBD_HandleTypeDef hUsbDeviceFS;
-volatile uint32_t macro_delay_timer = 0;
 
 __attribute__((aligned(4))) uint8_t Frame[8][128] = {0};
 
 volatile bool drawingallowed = true;
 volatile bool RefreshScreen = true;
 volatile bool UpdateButtons = true;
+volatile bool ReadEncoder = true;
 volatile bool USBPacketReceived = false;
 volatile bool KeysChanged = false;
 uint16_t changes = 0;
 uint8_t mute_flag = false;
+static int32_t internal_accumulator = 0;
 
 /* USER CODE END PV */
 
@@ -88,7 +89,6 @@ static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -141,7 +141,8 @@ int main(void)
 
   uint8_t media_report[64] = {0};
   uint8_t encoder_state = 0;
-
+  char text[128] = {0};
+  char buffer [5];
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -152,71 +153,121 @@ int main(void)
 
 	if(USBPacketReceived){
 		switch(HIDdataIn.DATA[0]){
-			case 1:
-				ChangeButtonAssignment(HIDdataIn.DATA[1], HIDdataIn.DATA[2], HIDdataIn.DATA[3]); break;
+			case 1:{
+				ChangeButtonAssignment(HIDdataIn.DATA[1], HIDdataIn.DATA[2], HIDdataIn.DATA[3], HIDdataIn.DATA[4]);
+
+				ClearDisplay();
+				strcpy(text, "Programmed");
+				if(drawingallowed) WriteLine(Frame, text, 2);
+				memset(text, 0, sizeof(text));
+				strcpy(text, "Key: ");
+				itoa(HIDdataIn.DATA[1]+1, buffer, 10);
+				strncat(text, buffer, strlen(buffer));
+				if(drawingallowed) WriteLine(Frame, text, 3);
+				memset(text, 0, sizeof(text));
+				if(HIDdataIn.DATA[2] & 0x01) strcpy(text, "Ctrl+");
+				if (HIDdataIn.DATA[2] & 0x02) strcat(text, "Shift+");
+				if (HIDdataIn.DATA[2] & 0x04) strcat(text, "Alt+");
+				buffer[0] = (char)HIDdataIn.DATA[4];
+				buffer[1] = '\0';
+				strcat(text, buffer);
+				if(drawingallowed) WriteLine(Frame, text, 4);
+				memset(text, 0, sizeof(text));
+				memset(buffer, 0, sizeof(buffer));
+
+				break;
+			}
 			case 2:
 		}
 		USBPacketReceived = false;
 	}
 
+	if (ReadEncoder) {
+	    internal_accumulator += GetEncoderCounter();
+	    ReadEncoder = false;
 
-	if(drawingallowed){
-		WriteString(Frame, "ONE", 0, test);
-		WriteString(Frame, "TWO", 1, test);
-		WriteString(Frame, "THREE", 2, test);
-		WriteString(Frame, "FOUR", 3, test);
-		WriteString(Frame, "FIVE", 4, test);
-		WriteString(Frame, "SIX", 5, test);
-		WriteString(Frame, "SEVEN", 6, test);
-		WriteString(Frame, "EIGHT", 7, test);
+	    // Only queue a USB command if we cross the sensitivity threshold
+	    while (internal_accumulator >= ENCODER_DIVIDER) {
+	        cntr++;                                  // Queue a Volume Up
+	        internal_accumulator -= ENCODER_DIVIDER; // Keep the remainder!
+	    }
+	    while (internal_accumulator <= -ENCODER_DIVIDER) {
+	        cntr--;                                  // Queue a Volume Down
+	        internal_accumulator += ENCODER_DIVIDER; // Keep the remainder!
+	    }
 	}
-
 	if(UpdateButtons){
-		ScanButtonsBitwise();
-		cntr += GetEncoderCounter();
+		ScanButtons();
+		UpdateButtons = false;
 	}
 	if(KeysChanged && hhid != NULL && hhid->state == CUSTOM_HID_IDLE){
 		keyreport = ButtonsToReport(GetKeys());
 		uint8_t result = USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyreport, sizeof(keyreport));
-		if(result == USBD_OK) KeysChanged = false;
+		if(result == USBD_OK){
+			KeysChanged = false;
+			if(GetKeys()){
+			ClearDisplay();
+			memset(text, 0, sizeof(text));
+			memset(buffer, 0, sizeof(buffer));
+			strcpy(text, "Pressed");
+			if(drawingallowed) WriteLine(Frame, text, 3);
+			memset(text, 0, sizeof(text));
+			if(keyreport.MODIFIER & 0x01) strcpy(text, "Ctrl+");
+			if (keyreport.MODIFIER & 0x02) strcat(text, "Shift+");
+			if (keyreport.MODIFIER & 0x04) strcat(text, "Alt+");
+			for(uint8_t i = 0; i<12; ++i){
+				if(GetKeys() >> i & 0x01) {
+					buffer[0] = getascii(i);
+					buffer[1] = '\0';
+					break;
+				}
+			}
+			strcat(text, buffer);
+			if(drawingallowed) WriteLine(Frame, text, 4);
+			memset(text, 0, sizeof(text));
+			memset(buffer, 0, sizeof(buffer));
+			}
+		}
 	}
 
 
 	if (hhid != NULL && hhid->state == CUSTOM_HID_IDLE) {
-
 	    if (encoder_state == 0) {
 	    	if(mute_flag){
 	    		media_report[0] = 0x03;
 	    		media_report[1] = 0x01; // Mute
-	    		USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, media_report, 64);
-	    		mute_flag = 0;
-	    		encoder_state = 1;
+	    		if(USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, media_report, 64) == USBD_OK){
+	    			mute_flag = 0;
+	    			encoder_state = 1;
+	    		}
 	    	}
 	    	else if (cntr > 0) {
 	            media_report[0] = 0x03;
 	            media_report[1] = 0x02; // Volume Up
-	            USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, media_report, 64);
-	            cntr--;
-	            encoder_state = 1;
+	            if(USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, media_report, 64) == USBD_OK){
+	            	cntr--;
+	            	encoder_state = 1;
+	            }
 	        }
 	        else if (cntr < 0) {
 	            media_report[0] = 0x03;
 	            media_report[1] = 0x04; // Volume Down
-	            USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, media_report, 64);
-	            cntr++;
-	            encoder_state = 1;
+	            if(USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, media_report, 64) == USBD_OK){
+	            	cntr++;
+	            	encoder_state = 1;
+	            }
 	        }
 	    }
 	    else if (encoder_state == 1) {
 	        media_report[0] = 0x03;
 	        media_report[1] = 0x00;	//release
-	        USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, media_report, 64);
-	        encoder_state = 0;
+	        if(USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, media_report, 64) == USBD_OK){
+	        	encoder_state = 0;
+	        }
 	    }
 	}
 
 	if(RefreshScreen) PaintDisplayDMA();
-	ClearDisplay();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -500,15 +551,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : ENC_BTN_Pin */
-  GPIO_InitStruct.Pin = ENC_BTN_Pin;
+  /*Configure GPIO pins : ENC_BTN_Pin ENC_CHA_Pin ENC_CHB_Pin */
+  GPIO_InitStruct.Pin = ENC_BTN_Pin|ENC_CHA_Pin|ENC_CHB_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(ENC_BTN_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : ENC_CHA_Pin ENC_CHB_Pin */
-  GPIO_InitStruct.Pin = ENC_CHA_Pin|ENC_CHB_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
@@ -527,7 +572,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
 /* USER CODE END 4 */
 
 /**

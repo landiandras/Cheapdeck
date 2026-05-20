@@ -27,21 +27,22 @@ uint16_t GetKeys(){
 }
 
 void SetColumn(uint8_t col){
+	if (col > numberofcolumns - 1) return;
 	Col0_GPIO_Port->BSRR = 15U;					//set all column GPIO to 1 (unselected)
 	Col0_GPIO_Port->BSRR = 1U << (col+16);		//set the correct column to 0 (selected)
 }
 
-void ReadColumnBitwise(uint8_t col){
-	uint32_t temp = 0;
+void ReadColumn(uint8_t col){
+	if (col > numberofcolumns - 1) return;
 	int8_t shift = 4 - (col * 3);
-	temp = ((GPIOB->IDR) & 0x0070);
-	if(shift >= 0) temp = temp >> shift;
-	else temp = temp << -shift;
-	newkeys |= temp;
+	uint32_t PortsState  = ((GPIOB->IDR) & 0x0070);
+	if(shift >= 0) PortsState = PortsState >> shift;
+	else PortsState = PortsState << - shift;
+	newkeys |= PortsState;
 }
 
 
-void ScanButtonsBitwise(){
+void ScanButtons(){
 	uint16_t oldkeys = newkeys;
 	newkeys = 0U;
 	for(uint8_t i = 0; i<numberofcolumns; ++i){
@@ -49,7 +50,7 @@ void ScanButtonsBitwise(){
 		for(int d = 0; d < 20; ++d) {				//Apparently we need to wait a bit between setting output GPIOs. 20 clock cycles seems to do it.
 					__NOP();
 				}
-		ReadColumnBitwise(i);
+		ReadColumn(i);
 	}
 	newkeys ^= 0x0FFF;								//invert the logic here so that 1 means pressed
 	changes = oldkeys^newkeys;						//check for changes

@@ -29,9 +29,9 @@ typedef struct {
 
 uint16_t GetKeys();
 void Debounce();
-void ReadColumnBitwise(uint8_t col);
+void ReadColumn(uint8_t col);
 void SetColumn(uint8_t col);
-void ScanButtonsBitwise();
+void ScanButtons();
 void WriteMacrosToFlash();
 
 
