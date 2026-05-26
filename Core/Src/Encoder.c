@@ -13,6 +13,7 @@ volatile bool EncoderButton = false;
 const uint32_t LockoutDuration = 5;
 extern uint8_t mute_flag;
 volatile uint32_t EncoderLockout = 0;
+int32_t cntr;
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
@@ -72,4 +73,19 @@ int32_t GetEncoderCounter(){
 
 
 	return temp;
+}
+
+void UpdateEncoderAccumulator() {
+    static int32_t internal_accumulator = 0;
+    internal_accumulator += GetEncoderCounter();
+
+    // Only queue a USB command if we cross the sensitivity threshold
+    while (internal_accumulator >= ENCODER_DIVIDER) {
+        cntr++;                                  // Queue a Volume Up
+        internal_accumulator -= ENCODER_DIVIDER; // Keep the remainder
+    }
+    while (internal_accumulator <= -ENCODER_DIVIDER) {
+        cntr--;                                  // Queue a Volume Down
+        internal_accumulator += ENCODER_DIVIDER; // Keep the remainder
+    }
 }

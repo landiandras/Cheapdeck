@@ -9,7 +9,10 @@
 #define INC_FLASH_H_
 
 #include "main.h"
+#include "USB.h"
 
-void WriteToFlash(uint32_t* data, uint32_t size);
-
+void EraseFlash();
+void FlashAppend(uint32_t* data, uint32_t size_in_bytes);
+uint32_t GetFlashAddress();
+void ScanFlashSector();
 #endif /* INC_FLASH_H_ */

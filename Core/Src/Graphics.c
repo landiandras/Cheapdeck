@@ -6,8 +6,15 @@
  */
 
 #include "Graphics.h"
+#include "Display.h"
+#include "USB.h"
+#include <string.h>
+#include <stdlib.h>
 
-const uint8_t const CharacterSet[][5] = {
+extern bool drawingallowed;
+extern uint8_t Frame[8][128];
+
+const uint8_t CharacterSet[][5] = {
 		{ 0x00, 0x00, 0x00, 0x00, 0x00 },  // 20  32
 		{ 0x00, 0x00, 0x4F, 0x00, 0x00 },  // 21  33  !
 		{ 0x00, 0x07, 0x00, 0x07, 0x00 },  // 22  34  "
@@ -136,4 +143,67 @@ void WriteLine(uint8_t Frame[8][128], char* c, uint8_t page){
 		++temp;
 	}
 	WriteString(Frame, c, page, ((127-length)/2));
+}
+
+void UpdateDisplayForProgramming(uint8_t key_index, uint8_t modifiers, char* macro_string) {
+    if (!drawingallowed) return;
+
+    char local_text[30] = {0};
+    char local_buffer[10] = {0};
+
+    ClearDisplay();
+    WriteLine(Frame, "Programmed", 2);
+
+    // Format and draw Key Index
+    strcpy(local_text, "Key: ");
+    itoa(key_index + 1, local_buffer, 10);
+    strncat(local_text, local_buffer, strlen(local_buffer));
+    WriteLine(Frame, local_text, 3);
+
+    // Reset buffer for modifiers
+    memset(local_text, 0, sizeof(local_text));
+
+    if (modifiers & 0x01) strcpy(local_text, "Ctrl+");
+    if (modifiers & 0x02) strcat(local_text, "Shift+");
+    if (modifiers & 0x04) strcat(local_text, "Alt+");
+
+    // Check line wrapping length (assuming 21 characters max per line)
+    if ((strlen(local_text) + strnlen(macro_string, 60)) < 21) {
+        strcat(local_text, macro_string);
+        WriteLine(Frame, local_text, 4);
+    } else {
+        WriteLine(Frame, local_text, 4);
+        WriteLine(Frame, macro_string, 5); // Spill over to the next line
+    }
+}
+
+void UpdateDisplayForKeyPress(uint8_t modifiers, uint16_t pressed_keys) {
+    if (!drawingallowed) return;
+
+    char local_text[30] = {0};
+
+    ClearDisplay();
+    WriteLine(Frame, "Pressed", 3);
+
+    // Format modifiers
+    if (modifiers & 0x01) strcpy(local_text, "Ctrl+");
+    if (modifiers & 0x02) strcat(local_text, "Shift+");
+    if (modifiers & 0x04) strcat(local_text, "Alt+");
+
+    // Find the first pressed key and display it
+    for (uint8_t i = 0; i < 12; ++i) {
+        if ((pressed_keys >> i) & 0x01) {
+            char* ascii_key = getascii(i);
+            if (ascii_key != NULL) {
+                if ((strlen(local_text) + strlen(ascii_key)) < 21) {
+                    strcat(local_text, ascii_key);
+                    WriteLine(Frame, local_text, 4);
+                } else {
+                    WriteLine(Frame, local_text, 4);
+                    WriteLine(Frame, ascii_key, 5);
+                }
+            }
+            break; // Stop after finding the first active key
+        }
+    }
 }

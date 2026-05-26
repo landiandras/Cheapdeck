@@ -14,8 +14,9 @@
 #include "stm32f4xx_hal.h"
 
 
-extern void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 bool GetEncoderButtonState();
 int32_t GetEncoderCounter();
+void UpdateEncoderAccumulator();
 
 #endif /* INC_ENCODER_H_ */
