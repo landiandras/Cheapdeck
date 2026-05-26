@@ -113,6 +113,7 @@ const uint8_t offset = 32;
 
 
 void WriteCharacter(uint8_t Frame[8][128], char c, uint8_t page, uint8_t column){
+	if(page > 7 || column > 127) return;
 	for(uint8_t i = column; i<(column+5); ++i){
 		if(i<128) Frame[page][i] = CharacterSet[c-offset][i-column];
 		else Frame[page][i-128] = CharacterSet[c-offset][i-column];

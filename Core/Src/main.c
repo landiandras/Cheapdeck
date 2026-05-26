@@ -136,8 +136,6 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim3);
 
   int32_t cntr = 0;
-  uint8_t test = 10;
-  uint8_t activemacro = 0;
 
   uint8_t media_report[64] = {0};
   uint8_t encoder_state = 0;
@@ -154,7 +152,7 @@ int main(void)
 	if(USBPacketReceived){
 		switch(HIDdataIn.DATA[0]){
 			case 1:{
-				ChangeButtonAssignment(HIDdataIn.DATA[1], HIDdataIn.DATA[2], HIDdataIn.DATA[3], HIDdataIn.DATA[4]);
+				ChangeButtonAssignment(HIDdataIn.DATA[1], HIDdataIn.DATA[2], HIDdataIn.DATA[3], (char*)&(HIDdataIn.DATA[4]));
 
 				ClearDisplay();
 				strcpy(text, "Programmed");
@@ -168,10 +166,15 @@ int main(void)
 				if(HIDdataIn.DATA[2] & 0x01) strcpy(text, "Ctrl+");
 				if (HIDdataIn.DATA[2] & 0x02) strcat(text, "Shift+");
 				if (HIDdataIn.DATA[2] & 0x04) strcat(text, "Alt+");
-				buffer[0] = (char)HIDdataIn.DATA[4];
-				buffer[1] = '\0';
-				strcat(text, buffer);
-				if(drawingallowed) WriteLine(Frame, text, 4);
+				if((strlen(text) + strnlen((char*)(&(HIDdataIn.DATA[4])), 60)) < 21){
+					strcat(text, (char*)&HIDdataIn.DATA[4]);
+					if(drawingallowed) WriteLine(Frame, text, 4);
+				}
+				else{
+					if(drawingallowed) WriteLine(Frame, text, 4);
+					if(drawingallowed) WriteLine(Frame, (char*)&HIDdataIn.DATA[4], 5);
+				}
+
 				memset(text, 0, sizeof(text));
 				memset(buffer, 0, sizeof(buffer));
 
@@ -179,6 +182,7 @@ int main(void)
 			}
 			case 2:
 		}
+		memset(&HIDdataIn, 0, sizeof(HIDdataIn));
 		USBPacketReceived = false;
 	}
 
@@ -217,8 +221,14 @@ int main(void)
 			if (keyreport.MODIFIER & 0x04) strcat(text, "Alt+");
 			for(uint8_t i = 0; i<12; ++i){
 				if(GetKeys() >> i & 0x01) {
-					buffer[0] = getascii(i);
-					buffer[1] = '\0';
+					if(getascii(i) != NULL && (strlen(text) + strlen(getascii(i)) < 21)){
+						strcat(text, getascii(i));
+						if(drawingallowed) WriteLine(Frame, text, 4);
+					}
+					else{
+						if(drawingallowed) WriteLine(Frame, text, 4);
+						if((getascii(i) != NULL) && drawingallowed) WriteLine(Frame, getascii(i), 5);
+					}
 					break;
 				}
 			}

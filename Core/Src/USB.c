@@ -13,7 +13,7 @@ extern uint8_t numberofcolumns;
 typedef struct __attribute__((packed)){
 	uint8_t MODIFIER;
 	uint8_t KEYCODE;
-	uint8_t ascii;
+	char ascii[32];
 }KeyAssignment;
 
 /*
@@ -58,17 +58,21 @@ void SaveAssignments(){
 	WriteToFlash((uint32_t*)ButtonAssignments, sizeof(ButtonAssignments));
 }
 
-void ChangeButtonAssignment(uint8_t but, uint8_t MODIFIER, uint8_t KEYCODE, uint8_t ascii){
+void ChangeButtonAssignment(uint8_t but, uint8_t MODIFIER, uint8_t KEYCODE, char* ascii){
 	if(but>11) return;
 	const int index_map[12] = {0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11};
 	int index = index_map[but];
+	if(KEYCODE == 0xE3){
+		MODIFIER |= 0x08;
+		KEYCODE = 0x00;
+	}
 	ButtonAssignments[index].KEYCODE = KEYCODE;
 	ButtonAssignments[index].MODIFIER = MODIFIER;
-	ButtonAssignments[index].ascii = ascii;
-	//SaveAssignments(); TODO re-enable flash saving once done
+	strcpy(ButtonAssignments[index].ascii, ascii);
+	//SaveAssignments(); //TODO re-enable flash saving once done
 }
 
-char getascii(uint8_t but){
-	if(but > 12 ) return 255;
-	return (char)ButtonAssignments[but].ascii;
+char* getascii(uint8_t but){
+	if(but > 12 ) return NULL;
+	return ButtonAssignments[but].ascii;
 }

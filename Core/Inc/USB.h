@@ -16,7 +16,7 @@
 HIDkeypress ButtonsToReport(uint16_t buttons);
 void LoadAssignments();
 void SaveAssignments();
-void ChangeButtonAssignment(uint8_t but, uint8_t MODIFIER, uint8_t KEYCODE, uint8_t ascii);
-char getascii(uint8_t but);
+void ChangeButtonAssignment(uint8_t but, uint8_t MODIFIER, uint8_t KEYCODE, char* ascii);
+char* getascii(uint8_t but);
 
 #endif /* INC_USB_H_ */

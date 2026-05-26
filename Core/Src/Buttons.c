@@ -20,7 +20,7 @@ extern uint16_t changes;
 extern bool KeysChanged;
 uint32_t ButtonsLockout[12] = {0};
 
-KeyboardEvent Macros[12][256] = {0};
+//KeyboardEvent Macros[12][256] = {0};
 
 uint16_t GetKeys(){
 	return newkeys;
@@ -72,12 +72,14 @@ void Debounce(){
 	}
 }
 
+//UNUSED:
 void WriteMacrosToFlash(){
-	WriteToFlash((uint32_t*)Macros, sizeof(Macros));
+	//WriteToFlash((uint32_t*)Macros, sizeof(Macros));
 }
 
+//UNUSED:
 void ReadMacrosFromFlash(){
-	memcpy(Macros, (const void*)0x08060000, sizeof(Macros));
+	//memcpy(Macros, (const void*)0x08060000, sizeof(Macros));
 }
 
 
